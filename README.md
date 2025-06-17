@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/jayarrowz-mcp-osrs-badge.png)](https://mseep.ai/app/jayarrowz-mcp-osrs)
+
 # OSRS MCP Server [![smithery badge](https://smithery.ai/badge/@jayarrowz/mcp-osrs)](https://smithery.ai/server/@jayarrowz/mcp-osrs)
 
 MCP Server for interacting with the Old School RuneScape (OSRS) Wiki API and data files. This server provides tools to search the OSRS Wiki and access game data definitions through the Model Context Protocol.
