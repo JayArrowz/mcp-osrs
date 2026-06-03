@@ -13,6 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
+import { getStats, getStatsByGamemode } from 'osrs-json-hiscores';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,6 +66,11 @@ const FileDetailsSchema = z.object({
 
 const ListDataFilesSchema = z.object({
     fileType: z.string().optional().describe("Optional filter for file type (e.g., 'txt')")
+});
+
+const LookupPlayerSchema = z.object({
+    playerName: z.string().describe("The RuneScape username to look up"),
+    gamemode: z.enum(['main', 'ironman', 'hardcore', 'ultimate', 'deadman', 'seasonal']).optional().describe("Game mode to check (defaults to auto-detect)")
 });
 
 function convertZodToJsonSchema(schema: z.ZodType<any>) {
@@ -335,6 +341,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 description: "List available data files in the data directory.",
                 inputSchema: convertZodToJsonSchema(ListDataFilesSchema),
             },
+            {
+                name: "lookup_player",
+                description: "Look up an OSRS player's stats (skills, bosses, clue scrolls, and activities) from the official hiscores.",
+                inputSchema: convertZodToJsonSchema(LookupPlayerSchema),
+            },
         ]
     };
 });
@@ -436,6 +447,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const { fileType } = ListDataFilesSchema.parse(args);
                 const files = listDataFiles(fileType);
                 return responseToString({ files, path: DATA_DIR });
+
+            case "lookup_player":
+                const { playerName, gamemode } = LookupPlayerSchema.parse(args);
+                let playerStats: any;
+                if (gamemode) {
+                    playerStats = await getStatsByGamemode(playerName, gamemode);
+                } else {
+                    playerStats = await getStats(playerName);
+                }
+                return responseToString(playerStats);
 
             default:
                 throw new Error(`Unknown tool: ${name}`);
