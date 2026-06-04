@@ -60,8 +60,8 @@ describe('searchFile (real data files)', () => {
     });
 
     it('converts spaces to underscores before searching', async () => {
-        const withSpace = await searchFile(objtypesPath, 'mcannon ball');
-        const withUnderscore = await searchFile(objtypesPath, 'mcannonball');
+        const withSpace = await searchFile(objtypesPath, 'abyssal whip');
+        const withUnderscore = await searchFile(objtypesPath, 'abyssal_whip');
         expect(withSpace.pagination.totalResults).toBe(withUnderscore.pagination.totalResults);
     });
 
