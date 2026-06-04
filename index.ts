@@ -95,6 +95,38 @@ const server = new Server(
 );
 
 /**
+ * Score how well a line matches a search term.
+ * Returns 0 if no match, higher = better.
+ */
+export function fuzzyScore(text: string, pattern: string): number {
+    const t = text.toLowerCase();
+    const p = pattern.toLowerCase();
+
+    // Exact substring — best
+    if (t.includes(p)) return 100;
+
+    // All whitespace/underscore-split tokens present as substrings
+    const tokens = p.split(/[\s_]+/).filter(Boolean);
+    if (tokens.length > 1 && tokens.every(tok => t.includes(tok))) return 75;
+
+    // Character subsequence match (handles typos / partial queries)
+    let score = 0;
+    let pIdx = 0;
+    let consecutive = 0;
+    for (let i = 0; i < t.length && pIdx < p.length; i++) {
+        if (t[i] === p[pIdx]) {
+            score += 1 + consecutive;
+            consecutive++;
+            pIdx++;
+        } else {
+            consecutive = 0;
+        }
+    }
+    if (pIdx < p.length) return 0; // not all chars matched
+    return Math.min(50, Math.floor((score / p.length) * 20));
+}
+
+/**
  * Search through a file for matching lines
  * @param filePath Path to the file to search
  * @param searchTerm Term to search for
@@ -102,16 +134,15 @@ const server = new Server(
  * @param pageSize Number of results per page
  * @returns Object containing results and pagination info
  */
-async function searchFile(filePath: string, searchTerm: string, page: number = 1, pageSize: number = 10): Promise<any> {
-    //replace spaces with underscores
-    searchTerm = searchTerm.replace(" ", "_");
+export async function searchFile(filePath: string, searchTerm: string, page: number = 1, pageSize: number = 10): Promise<any> {
+    searchTerm = searchTerm.replace(/ /g, "_");
     return new Promise((resolve, reject) => {
         if (!fs.existsSync(filePath)) {
             reject(new Error(`File not found: ${filePath}`));
             return;
         }
 
-        const results: {line: string, lineNumber: number}[] = [];
+        const results: {line: string, lineNumber: number, score: number}[] = [];
         const fileStream = fs.createReadStream(filePath);
         const rl = readline.createInterface({
             input: fileStream,
@@ -122,12 +153,14 @@ async function searchFile(filePath: string, searchTerm: string, page: number = 1
         
         rl.on('line', (line) => {
             lineNumber++;
-            if (line.toLowerCase().includes(searchTerm.toLowerCase())) {
-                results.push({ line, lineNumber });
+            const score = fuzzyScore(line, searchTerm);
+            if (score > 0) {
+                results.push({ line, lineNumber, score });
             }
         });
 
         rl.on('close', () => {
+            results.sort((a, b) => b.score - a.score);
             const totalResults = results.length;
             const totalPages = Math.ceil(totalResults / pageSize);
             const startIndex = (page - 1) * pageSize;
@@ -135,7 +168,7 @@ async function searchFile(filePath: string, searchTerm: string, page: number = 1
             const paginatedResults = results.slice(startIndex, endIndex);
 
             // Process the results to extract key-value pairs if possible
-            const formattedResults = paginatedResults.map(result => {
+            const formattedResults = paginatedResults.map(({ score, ...result }) => {
                 // Try to format as key-value pair (common for ID data files)
                 const parts = result.line.split(/\s+/);
                 if (parts.length >= 2) {
@@ -175,7 +208,7 @@ async function searchFile(filePath: string, searchTerm: string, page: number = 1
  * @param filename The filename to check
  * @returns Boolean indicating if the file exists
  */
-function fileExists(filename: string): boolean {
+export function fileExists(filename: string): boolean {
     const filePath = path.join(DATA_DIR, filename);
     return fs.existsSync(filePath);
 }
@@ -185,7 +218,7 @@ function fileExists(filename: string): boolean {
  * @param filename The filename to get details for
  * @returns Object with file details
  */
-function getFileDetails(filename: string): any {
+export function getFileDetails(filename: string): any {
     try {
         const filePath = path.join(DATA_DIR, filename);
         if (!fs.existsSync(filePath)) {
@@ -228,7 +261,7 @@ function getFileLineCount(filePath: string): number {
  * @param fileType Optional filter for file type
  * @returns Array of file names
  */
-function listDataFiles(fileType?: string): string[] {
+export function listDataFiles(fileType?: string): string[] {
     try {
         const files = fs.readdirSync(DATA_DIR);
         
@@ -508,7 +541,9 @@ async function main() {
     }
 }
 
-main().catch((error) => {
-    console.error("Fatal error in main():", error);
-    process.exit(1);
-});
+if (!process.env.JEST_WORKER_ID) {
+    main().catch((error) => {
+        console.error("Fatal error in main():", error);
+        process.exit(1);
+    });
+}
