@@ -1,15 +1,17 @@
 {
     "compilerOptions": {
       "target": "ES2020",
-      "module": "ESNext",
+      "module": "esnext",
       "moduleResolution": "node",
       "esModuleInterop": true,
       "outDir": "./dist",
       "rootDir": ".",
+      "ignoreDeprecations": "6.0",
       "strict": true,
       "declaration": true,
       "skipLibCheck": true,
-      "allowSyntheticDefaultImports": true
+      "allowSyntheticDefaultImports": true,
+      "types": ["node"]
     },
     "include": [
       "./**/*.ts"
