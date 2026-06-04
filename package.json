@@ -7,6 +7,10 @@
   "homepage": "https://github.com/jayarrowz/mcp-osrs",
   "bugs": "https://github.com/jayarrowz/mcp-osrs/issues",
   "type": "module",
+  "repository": {
+    "url": "https://github.com/JayArrowz/mcp-osrs.git",
+    "type": "git"
+  },
   "bin": {
     "mcp-osrs": "dist/index.js"
   },
