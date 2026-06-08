@@ -44,6 +44,14 @@ This server implements the following tools:
 18. `get_file_details` - Get details about a file in the data directory
 19. `list_data_files` - List available data files in the data directory
 
+### Grand Exchange Prices
+20. `search_ge_items` - Search for Grand Exchange tradeable items by name. Returns item IDs, names, buy limits, and alch values
+21. `get_ge_latest` - Get the latest Grand Exchange high and low prices for a specific item by its ID
+22. `get_ge_timeseries` - Get historical time-series price data for an item at a given interval (5m, 1h, 6h, 24h). Returns up to 365 data points
+
+### Player Lookup
+23. `lookup_player` - Look up an OSRS player's stats (skills, bosses, clue scrolls, and activities) from the official hiscores
+
 ## Installation
 
 ### Installing via Smithery
@@ -132,6 +140,41 @@ const items = await callTool("search_objtypes", {
 ```javascript
 // Get a list of all data files
 const files = await callTool("list_data_files", {});
+```
+
+### Search Grand Exchange Items
+```javascript
+// Search for tradeable items by name
+const items = await callTool("search_ge_items", { 
+  query: "dragon scimitar",
+  page: 1,
+  pageSize: 10
+});
+```
+
+### Get Latest GE Prices
+```javascript
+// Get the latest high/low prices for an item
+const prices = await callTool("get_ge_latest", { 
+  itemId: 2 // Cannonball
+});
+```
+
+### Get GE Price History
+```javascript
+// Get time-series price data for an item
+const history = await callTool("get_ge_timeseries", { 
+  itemId: 2,
+  timestep: "1h"
+});
+```
+
+### Look Up a Player
+```javascript
+// Look up an OSRS player's stats
+const stats = await callTool("lookup_player", { 
+  playerName: "Zezima"
+});
 ```
 
 ## Development

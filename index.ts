@@ -14,6 +14,8 @@ import path from 'path';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
 import { getStats, getStatsByGamemode } from 'osrs-json-hiscores';
+import { searchItems, getLatest, getTimeSeries } from './ge-prices.js';
+import { SearchGeItemsSchema, GeLatestSchema, GeTimeSeriesSchema } from './ge-prices.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -379,6 +381,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 description: "Look up an OSRS player's stats (skills, bosses, clue scrolls, and activities) from the official hiscores.",
                 inputSchema: convertZodToJsonSchema(LookupPlayerSchema),
             },
+            {
+                name: "search_ge_items",
+                description: "Search for Grand Exchange tradeable items by name. Uses an exact/prefix/substring match. Returns item IDs, names, buy limits, and alch values.",
+                inputSchema: convertZodToJsonSchema(SearchGeItemsSchema),
+            },
+            {
+                name: "get_ge_latest",
+                description: "Get the latest Grand Exchange high and low prices for a specific item by its ID.",
+                inputSchema: convertZodToJsonSchema(GeLatestSchema),
+            },
+            {
+                name: "get_ge_timeseries",
+                description: "Get historical time-series price data for an item at a given interval (5m, 1h, 6h, 24h). Returns up to 365 data points.",
+                inputSchema: convertZodToJsonSchema(GeTimeSeriesSchema),
+            },
         ]
     };
 });
@@ -490,6 +507,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     playerStats = await getStats(playerName);
                 }
                 return responseToString(playerStats);
+
+            case "search_ge_items": {
+                const { query, page: gePage, pageSize: gePageSize } = SearchGeItemsSchema.parse(args);
+                const geResults = await searchItems(query, gePage, gePageSize);
+                return responseToString(geResults);
+            }
+
+            case "get_ge_latest": {
+                const { itemId } = GeLatestSchema.parse(args);
+                const latest = await getLatest(itemId);
+                return responseToString(latest);
+            }
+
+            case "get_ge_timeseries": {
+                const { itemId: tsItemId, timestep } = GeTimeSeriesSchema.parse(args);
+                const series = await getTimeSeries(tsItemId, timestep);
+                return responseToString(series);
+            }
 
             default:
                 throw new Error(`Unknown tool: ${name}`);
